@@ -1,0 +1,5 @@
+*.csv
+old/
+__pycache__
+thyroid-disease
+Met__techn__syst__w_medyc__2_.pdf
