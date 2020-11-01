@@ -150,9 +150,16 @@ def cross_validation(data_X, data_Y):
 def experiment(data_x, data_y):
     results = []
     x = len(ds_X.columns)
+    final_result = 0
     for i in range(1, x):
         new_x, new_y = return_n_ranks(data_x, data_y, i)
-        part_res = cross_validation(new_x, new_y)
+        n1 = pd.DataFrame(data=new_x)
+        n2 = pd.DataFrame(data=new_y)
+        part_res = cross_validation(n1, n2)
+        if(part_res>=final_result):
+            final_result=part_res
+        else:
+            return (final_result, i)
         results.append((part_res, i))
     
     print(results)
@@ -215,6 +222,8 @@ print (ds_y)
 #cross_validation(ds_X, ds_y)
 
 #print(np.unique(ds_y, return_counts=True))
-experiment(ds_X, ds_y)
+accuracy, iterations = experiment(ds_X, ds_y)
+print("Number of iterations" , iterations) 
+print("Accuracy score: %.3f" % accuracy)
 
 
