@@ -185,3 +185,4 @@ accuracy = sklearn.metrics.accuracy_score(ds_merged_1['diagnosis'], ds_merged_1[
 #        predictions[ record['diagnosis'] ][1] += 1
 
 print(accuracy)
+
