@@ -20,6 +20,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.inspection import permutation_importance
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import KFold
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.metrics import accuracy_score
 
 def load():
     data=pd.read_csv("allhyper.data", sep= ',', na_values='?', names=names.Attributes)
@@ -121,17 +124,21 @@ def print_ranking(ranking):
         rounded_val = "{0: .2f}".format(val)
         print(f"{name} : {rounded_val}")
 
-def cross_validation(data_X, data_Y, seed=300):
-    data2 = pd.DataFrame.join(data_X, data_Y)
-    data2_1 = data2.sample(frac=0.5, random_state=seed)
-    data2_2 = data2.drop(data2_1.index)
+def cross_validation(data_X, data_Y):
+    #data2 = pd.DataFrame.join(data_X, data_Y)
+    clf = KNeighborsClassifier(n_neighbors=1)
+    rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=1234)
+    scores = []
+    for train_index, test_index in rskf.split(data_X, data_Y):
+        X_train, X_test = data_X.to_numpy()[train_index], data_X.to_numpy()[test_index]
+        y_train, y_test = data_Y.to_numpy()[train_index], data_Y.to_numpy()[test_index]
+        clf.fit(X_train, y_train)
+        predict = clf.predict(X_test)
+        scores.append(accuracy_score(y_test, predict))
 
-    print('Array 1:\n')
-    print(data2_1)
-    print('Array 2:\n')
-    print(data2_2)
-
-    return (data2_1, data2_2)
+    mean_score = np.mean(scores)
+    std_score = np.std(scores)
+    print("Accuracy score: %.3f (%.3f)" % (mean_score, std_score))
 
 # Returns 
 def kNNClassify(k, metric, features, training_data, test_data) :
@@ -161,7 +168,7 @@ plt.bar(x,y)
 for index, value in enumerate(y) :
     plt.text(index-.5, value, str(round(value, 2)))
 plt.show()
-
+'''
 ds_train_1, ds_test_1 = cross_validation(ds_X, ds_y, 9)
 
 feature_list = []
@@ -185,4 +192,9 @@ accuracy = sklearn.metrics.accuracy_score(ds_merged_1['diagnosis'], ds_merged_1[
 #        predictions[ record['diagnosis'] ][1] += 1
 
 print(accuracy)
+'''
+print(ds_X)
+print (ds_y)
+cross_validation(ds_X, ds_y)
 
+#print(np.unique(ds_y, return_counts=True))
