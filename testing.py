@@ -146,7 +146,8 @@ def cross_validation(metric, neigh, data_X, data_Y, num_att):
     print("Accuracy score: %.3f (%.3f)" % (mean_score, std_score))
     print("Number of features:", num_att)
     print("Number of Neighbours:", neigh)
-    print("Metric type:", metric)
+    print("Metric type:", metric, "\n")
+    
 
     return mean_score
 
