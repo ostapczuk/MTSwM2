@@ -15,11 +15,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sn
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.inspection import permutation_importance
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import confusion_matrix
+from scipy.stats import ttest_rel
 from sklearn.model_selection import KFold
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
@@ -163,7 +167,29 @@ def kNNClassify(k, metric, features, training_data, test_data) :
     classification = knn.predict(test_features)
     print( classification )
     return classification
+
 '''
+
+    
+def t_student_compare(result1, result2):
+    alpha = .05
+    test = ttest_rel(result1, result2)
+    T = test.statistic
+    p = test.pvalue
+    
+    return T, p
+
+def t_student_print(T, p, description1, description2):
+    if p > alpha:
+        print (description1 + "vs" + description2 + ": Brak istotnych różnic statystycznych")
+        return 0;
+    elif T > 0 :
+        print(description1 + " vs " + description2 + ": Algorytm " + description1 + " jest statystycznie istotnie lepszy.")
+        print(f"T = {T}, p = {p}")
+    else :
+        print(description1 + " vs " + description2 + ": Algorytm " + description2 + " jest statystycznie istotnie lepszy.")
+        print(f"T = {T}, p = {p}")
+
 
 
 ds_X, ds_y = load()
@@ -229,3 +255,70 @@ for num_of_att in range(1,x):
             cross_validation(metric, neighb, n1, n2, num_of_att)
 
 
+# Confusion matrix
+
+le = preprocessing.LabelEncoder()
+le.fit(ds_merged_1['diagnosis'])
+
+classnames = list(le.classes_)
+
+cmtr = confusion_matrix(ds_merged_1['diagnosis'], ds_merged_1['classification'])
+print(cmtr)
+
+plt.imshow(cmtr, interpolation='nearest')
+plt.xticks(np.arange(0,len(classnames)), classnames)
+plt.yticks(np.arange(0,len(classnames)), classnames)
+
+df_cm = pd.DataFrame(cmtr, index=classnames, columns=classnames)
+
+ax = sn.heatmap(df_cm, cmap='Oranges', annot=True)
+ax.set_ylabel('Actual class')
+ax.set_xlabel('Predicted class')
+
+
+plt.show()
+
+"""
+################################################
+## Statistical analysis ########################
+################################################
+
+# Calculate difference between k-NN with different metrics
+
+result1 = # euclidean 1
+result2 = # manhattan 1
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "euclidean k=1", "euclidean k=1")
+
+result1 = # euclidean 5
+result2 = # manhattan 5
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "euclidean k=5", "manhattan k=5")
+
+result1 = # euclidean 10
+result2 = # manhattan 10
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "euclidean k=10", "manhattan k=10")
+
+# Calculate difference between k-NN with k equal to 1, 5 or 10
+
+result1 = # 1 euclidean
+result2 = # 5 euclidean
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "euclidean k=1", "euclidean k=5")
+
+result1 = # 5 euclidean
+result2 = # 10 euclidean
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "euclidean k=5", "euclidean k=10")
+
+result1 = # 1 manhattan
+result2 = # 5 manhattan
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "manhattan k=1", "manhattan k=5")
+
+result1 = # 5 manhattan
+result2 = # 10 manhattan
+T, p = t_student_compare(result1, result2)
+t_student_print(T, p, "manhattan k=5", "euclidean k=10")
+"""
