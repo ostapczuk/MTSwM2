@@ -129,9 +129,9 @@ def return_n_ranks(data_x, data_y, n):
     new_data = selector.fit_transform(data_x, data_y)
     return (new_data, data_y)
 
-def cross_validation(data_X, data_Y):
+def cross_validation(metric, neigh, data_X, data_Y, num_att):
     #data2 = pd.DataFrame.join(data_X, data_Y)
-    clf = KNeighborsClassifier(n_neighbors=3)
+    clf = KNeighborsClassifier(n_neighbors=neigh, metric=metric)
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=1234)
     scores = []
     for train_index, test_index in rskf.split(data_X, data_Y):
@@ -144,26 +144,13 @@ def cross_validation(data_X, data_Y):
     mean_score = np.mean(scores)
     std_score = np.std(scores)
     print("Accuracy score: %.3f (%.3f)" % (mean_score, std_score))
+    print("Number of features:", num_att)
+    print("Number of Neighbours:", neigh)
+    print("Metric type:", metric)
 
     return mean_score
 
-def experiment(data_x, data_y):
-    results = []
-    x = len(ds_X.columns)
-    final_result = 0
-    for i in range(1, x):
-        new_x, new_y = return_n_ranks(data_x, data_y, i)
-        n1 = pd.DataFrame(data=new_x)
-        n2 = pd.DataFrame(data=new_y)
-        part_res = cross_validation(n1, n2)
-        if(part_res>=final_result):
-            final_result=part_res
-        else:
-            return (final_result, i)
-        results.append((part_res, i))
-    
-    print(results)
-
+'''
 # Returns 
 def kNNClassify(k, metric, features, training_data, test_data) :
     knn = KNeighborsClassifier(n_neighbors=k, metric=metric)
@@ -175,7 +162,7 @@ def kNNClassify(k, metric, features, training_data, test_data) :
     classification = knn.predict(test_features)
     print( classification )
     return classification
-    
+'''
 
 
 ds_X, ds_y = load()
@@ -222,8 +209,22 @@ print (ds_y)
 #cross_validation(ds_X, ds_y)
 
 #print(np.unique(ds_y, return_counts=True))
-accuracy, iterations = experiment(ds_X, ds_y)
-print("Number of iterations" , iterations) 
-print("Accuracy score: %.3f" % accuracy)
+#accuracy, iterations = experiment(ds_X, ds_y)
+#print("Number of iterations" , iterations) 
+#print("Accuracy score: %.3f" % accuracy)
+
+metric_types = ['euclidean', 'manhattan']
+
+x = len(ds_X.columns)
+
+
+for num_of_att in range(1,x):
+    new_x, new_y = return_n_ranks(ds_X, ds_y, num_of_att)
+    n1 = pd.DataFrame(data=new_x)
+    n2 = pd.DataFrame(data=new_y)
+    for x_knn in [1,5,10]:
+        for metric in metric_types:
+            neighb = x_knn
+            cross_validation(metric, neighb, n1, n2, num_of_att)
 
 
