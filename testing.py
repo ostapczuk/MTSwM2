@@ -28,6 +28,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
 
+alpha = .05
+
 def load():
     data=pd.read_csv("allhyper.data", sep= ',', na_values='?', names=names.Attributes)
 
@@ -133,8 +135,20 @@ def return_n_ranks(data_x, data_y, n):
     new_data = selector.fit_transform(data_x, data_y)
     return (new_data, data_y)
 
-def cross_validation(metric, neigh, data_X, data_Y, num_att):
-    #data2 = pd.DataFrame.join(data_X, data_Y)
+# Perform classification
+def kNNClassify(k, metric, features, training_data, test_data) :
+    knn = KNeighborsClassifier(n_neighbors=k, metric=metric)
+    training_features = training_data[features]
+    training_y = training_data['diagnosis']
+    knn.fit(training_features, training_y)
+    test_features = test_data[features]
+    test_y = test_data['diagnosis']
+    classification = knn.predict(test_features)
+    print( classification )
+    return classification
+
+
+def calculate_accuracy(data_X, data_Y, metric='euclidean', neigh=5, num_att=5):
     clf = KNeighborsClassifier(n_neighbors=neigh, metric=metric)
     rskf = RepeatedStratifiedKFold(n_splits=2, n_repeats=5, random_state=1234)
     scores = []
@@ -152,27 +166,34 @@ def cross_validation(metric, neigh, data_X, data_Y, num_att):
     print("Number of Neighbours:", neigh)
     print("Metric type:", metric, "\n")
     
-
     return mean_score
 
-'''
-# Returns 
-def kNNClassify(k, metric, features, training_data, test_data) :
-    knn = KNeighborsClassifier(n_neighbors=k, metric=metric)
-    training_features = training_data[features]
-    training_y = training_data['diagnosis']
-    knn.fit(training_features, training_y)
-    test_features = test_data[features]
-    test_y = test_data['diagnosis']
-    classification = knn.predict(test_features)
-    print( classification )
-    return classification
+def find_optimal_attrs(data_X, data_y, metric, neighb) :
+    best_num = 0
+    best_val = 0.0
+    temp_val = 0.0
+    trend = 0
+    x = len(data_X.columns)
+    for num_of_att in range(1,x) :
+        new_x, new_y = return_n_ranks(data_X, data_y, num_of_att)
+        n1 = pd.DataFrame(data=new_x)
+        n2 = pd.DataFrame(data=new_y)
+        temp_val = calculate_accuracy(n1, n2, metric, neighb, num_of_att)
+        if temp_val > best_val :
+            best_val = temp_val 
+            best_num = num_of_att
+            if trend < 0 :
+                trend = 0
+            trend += 1
+        elif temp_val < best_val :
+            if trend > 0 :
+                trend = 0
+            trend -= 1
+        if trend < -3 : # if the last three increments in the number of features 
+            break # have led to a decrease in acuracy, stop adding new features
+    return best_val, best_num
 
-'''
-
-    
 def t_student_compare(result1, result2):
-    alpha = .05
     test = ttest_rel(result1, result2)
     T = test.statistic
     p = test.pvalue
@@ -181,7 +202,7 @@ def t_student_compare(result1, result2):
 
 def t_student_print(T, p, description1, description2):
     if p > alpha:
-        print (description1 + "vs" + description2 + ": Brak istotnych różnic statystycznych")
+        print (description1 + " vs " + description2 + ": Brak istotnych różnic statystycznych")
         return 0;
     elif T > 0 :
         print(description1 + " vs " + description2 + ": Algorytm " + description1 + " jest statystycznie istotnie lepszy.")
@@ -191,9 +212,9 @@ def t_student_print(T, p, description1, description2):
         print(f"T = {T}, p = {p}")
 
 
-
 ds_X, ds_y = load()
 ds_X, ds_y = prepareData(ds_X, ds_y)
+
 ranking1 = ranking(ds_X, ds_y, 10)
 print_ranking(ranking1)
 
@@ -206,63 +227,59 @@ plt.bar(x,y)
 for index, value in enumerate(y) :
     plt.text(index-.5, value, str(round(value, 2)))
 plt.show()
-'''
-ds_train_1, ds_test_1 = cross_validation(ds_X, ds_y, 9)
 
-feature_list = []
-for item in range (10) :
-    feature_list.append(x[item])
-
-ds_class_1 = kNNClassify(5, 'euclidean', feature_list, ds_train_1, ds_test_1)
-
-ds_merged_1 = ds_test_1
-ds_merged_1['classification'] = ds_class_1
-
-ds_merged_1.to_csv("data.csv")
-
-accuracy = sklearn.metrics.accuracy_score(ds_merged_1['diagnosis'], ds_merged_1['classification'])
-
-# Making a dictionary out of class names that will hold results.
-
-#for record in ds_merged_1[ ['diagnosis', 'classification'] ] :
-#    predictions[ record['diagnosis'] ][0] += 1
-#    if record['diagnosis'] == record['classification'] :
-#        predictions[ record['diagnosis'] ][1] += 1
-
-print(accuracy)
-'''
-print(ds_X)
-print (ds_y)
-#cross_validation(ds_X, ds_y)
-
-#print(np.unique(ds_y, return_counts=True))
-#accuracy, iterations = experiment(ds_X, ds_y)
-#print("Number of iterations" , iterations) 
-#print("Accuracy score: %.3f" % accuracy)
 
 metric_types = ['euclidean', 'manhattan']
+acc_score = {}
 
-x = len(ds_X.columns)
+for x_knn in [1,5,10]:
+    neighb = x_knn
+    for metric in metric_types:
+        acc_score[str(metric) + str(x_knn)] = find_optimal_attrs(ds_X, ds_y, metric, neighb)
 
+print (acc_score)
 
-for num_of_att in range(1,x):
-    new_x, new_y = return_n_ranks(ds_X, ds_y, num_of_att)
-    n1 = pd.DataFrame(data=new_x)
-    n2 = pd.DataFrame(data=new_y)
-    for x_knn in [1,5,10]:
-        for metric in metric_types:
-            neighb = x_knn
-            cross_validation(metric, neighb, n1, n2, num_of_att)
+# Find best classifier
+max_accuracy = max(acc_score, key=acc_score.get)
+print("Best accuracy classifier type: ", max_accuracy)
 
+if (max_accuracy == 'manhattan1') :
+    clf = KNeighborsClassifier(n_neighbors=1, metric='manhattan')
+elif (max_accuracy == 'manhattan5') :
+    clf = KNeighborsClassifier(n_neighbors=5, metric='manhattan')
+elif (max_accuracy == 'manhattan10') :
+    clf = KNeighborsClassifier(n_neighbors=10, metric='manhattan')
+elif (max_accuracy == 'euclidean1') :
+    clf = KNeighborsClassifier(n_neighbors=1, metric='euclidean')
+elif (max_accuracy == 'euclidean5') :
+    clf = KNeighborsClassifier(n_neighbors=5, metric='euclidean')
+elif (max_accuracy == 'euclidean10') :
+    clf = KNeighborsClassifier(n_neighbors=10, metric='euclidean')
+
+best_X, best_y = return_n_ranks(ds_X, ds_y, 'all')
+print(best_X)
+df_X = pd.DataFrame(data=best_X, columns=names.Attributes[:-1])
+df_y = pd.DataFrame(data=ds_y, columns=['diagnosis'])
+
+feature_list = []
+for item in range (acc_score[max_accuracy][1]) :
+    feature_list.append(x[item])
+
+clf.fit(df_X, df_y)
+predict = clf.predict(df_X)
+
+df_merged = df_X
+df_merged['diagnosis'] = df_y
+df_merged['classification'] = predict
 
 # Confusion matrix
-
+pd.set_option('display.max_rows', None)
 le = preprocessing.LabelEncoder()
-le.fit(ds_merged_1['diagnosis'])
+le.fit(df_y)
 
 classnames = list(le.classes_)
 
-cmtr = confusion_matrix(ds_merged_1['diagnosis'], ds_merged_1['classification'])
+cmtr = confusion_matrix(df_y, df_merged['classification'])
 print(cmtr)
 
 plt.imshow(cmtr, interpolation='nearest')
@@ -278,47 +295,44 @@ ax.set_xlabel('Predicted class')
 
 plt.show()
 
-"""
 ################################################
 ## Statistical analysis ########################
 ################################################
 
 # Calculate difference between k-NN with different metrics
-
-result1 = # euclidean 1
-result2 = # manhattan 1
+result1 = acc_score['euclidean1']
+result2 = acc_score['manhattan1']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "euclidean k=1", "euclidean k=1")
 
-result1 = # euclidean 5
-result2 = # manhattan 5
+result1 = acc_score['euclidean5']
+result2 = acc_score['manhattan5']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "euclidean k=5", "manhattan k=5")
 
-result1 = # euclidean 10
-result2 = # manhattan 10
+result1 = acc_score['euclidean10']
+result2 = acc_score['manhattan10']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "euclidean k=10", "manhattan k=10")
 
 # Calculate difference between k-NN with k equal to 1, 5 or 10
 
-result1 = # 1 euclidean
-result2 = # 5 euclidean
+result1 = acc_score['euclidean1']
+result2 = acc_score['euclidean5']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "euclidean k=1", "euclidean k=5")
 
-result1 = # 5 euclidean
-result2 = # 10 euclidean
+result1 = acc_score['euclidean5']
+result2 = acc_score['euclidean10']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "euclidean k=5", "euclidean k=10")
 
-result1 = # 1 manhattan
-result2 = # 5 manhattan
+result1 = acc_score['manhattan1']
+result2 = acc_score['manhattan5']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "manhattan k=1", "manhattan k=5")
 
-result1 = # 5 manhattan
-result2 = # 10 manhattan
+result1 = acc_score['manhattan5']
+result2 = acc_score['manhattan10']
 T, p = t_student_compare(result1, result2)
 t_student_print(T, p, "manhattan k=5", "euclidean k=10")
-"""
