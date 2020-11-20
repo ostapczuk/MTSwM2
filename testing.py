@@ -26,7 +26,7 @@ from sklearn.metrics import confusion_matrix
 from scipy.stats import ttest_rel
 from sklearn.model_selection import KFold
 from sklearn.model_selection import RepeatedStratifiedKFold
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import balanced_accuracy_score
 
 alpha = .05
 
@@ -157,7 +157,7 @@ def calculate_accuracy(data_X, data_Y, metric='euclidean', neigh=5, num_att=5):
         y_train, y_test = data_Y.to_numpy()[train_index], data_Y.to_numpy()[test_index]
         clf.fit(X_train, y_train.ravel())
         predict = clf.predict(X_test)
-        scores.append(accuracy_score(y_test, predict))
+        scores.append(balanced_accuracy_score(y_test, predict))
 
     mean_score = np.mean(scores)
     std_score = np.std(scores)
@@ -201,15 +201,17 @@ def t_student_compare(result1, result2):
     return T, p
 
 def t_student_print(T, p, description1, description2):
-    if p > alpha:
+    if math.isnan(p):
+        print (description1 + " vs " + description2 + ": p = nan. Wartości są identyczne")
+    elif p > alpha:
         print (description1 + " vs " + description2 + ": Brak istotnych różnic statystycznych")
         return 0;
     elif T > 0 :
         print(description1 + " vs " + description2 + ": Algorytm " + description1 + " jest statystycznie istotnie lepszy.")
-        print(f"T = {T}, p = {p}")
+        print("T = ", T, " p = ", p)
     else :
         print(description1 + " vs " + description2 + ": Algorytm " + description2 + " jest statystycznie istotnie lepszy.")
-        print(f"T = {T}, p = {p}")
+        print("T = ", T, " p = ", p)
 
 
 ds_X, ds_y = load()
@@ -303,7 +305,7 @@ plt.show()
 result1 = acc_score['euclidean1']
 result2 = acc_score['manhattan1']
 T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=1", "euclidean k=1")
+t_student_print(T, p, "euclidean k=1", "manhattan k=1")
 
 result1 = acc_score['euclidean5']
 result2 = acc_score['manhattan5']
