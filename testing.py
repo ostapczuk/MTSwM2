@@ -261,39 +261,7 @@ for n in range(1, len(ds_X.columns)):
             y_pred = clf.predict(X.to_numpy()[test])
             scores[clf_id, n, fold_id] = balanced_accuracy_score(y.to_numpy()[test], y_pred) 
 
-    
-
 np.save('resulttts', scores)
-
-
-
-'''
-x1 = len(ds_X.columns)
-metric_types = ['euclidean', 'manhattan']
-knn_number = [1,5,10]
-
-
-scores = np.recarray()
-
-acc_score = {}
-
-for number_of_att in range (1,x1):
-    for x_knn in knn_number:
-        for metric in metric_types:
-            new_x, new_y = return_n_ranks(ds_X, ds_y, number_of_att)
-            n1 = pd.DataFrame(data=new_x)
-            n2 = pd.DataFrame(data=new_y)
-            scores[number_of_att,x_knn,metric]=calculate_accuracy(n1, n2, metric, x_knn, number_of_att)
-
-
-for x_knn in [1,5,10]:
-    neighb = x_knn
-    for metric in metric_types:
-        acc_score[str(metric) + str(x_knn)] = find_optimal_attrs(ds_X, ds_y, metric, neighb)
-
-print (acc_score)
-'''
-
 
 # Find best classifier
 max_accuracy = max(acc_score, key=acc_score.get)
@@ -350,45 +318,3 @@ ax.set_xlabel('Predicted class')
 
 
 plt.show()
-
-################################################
-## Statistical analysis ########################
-################################################
-
-# Calculate difference between k-NN with different metrics
-result1 = acc_score['euclidean1']
-result2 = acc_score['manhattan1']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=1", "manhattan k=1")
-
-result1 = acc_score['euclidean5']
-result2 = acc_score['manhattan5']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=5", "manhattan k=5")
-
-result1 = acc_score['euclidean10']
-result2 = acc_score['manhattan10']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=10", "manhattan k=10")
-
-# Calculate difference between k-NN with k equal to 1, 5 or 10
-
-result1 = acc_score['euclidean1']
-result2 = acc_score['euclidean5']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=1", "euclidean k=5")
-
-result1 = acc_score['euclidean5']
-result2 = acc_score['euclidean10']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "euclidean k=5", "euclidean k=10")
-
-result1 = acc_score['manhattan1']
-result2 = acc_score['manhattan5']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "manhattan k=1", "manhattan k=5")
-
-result1 = acc_score['manhattan5']
-result2 = acc_score['manhattan10']
-T, p = t_student_compare(result1, result2)
-t_student_print(T, p, "manhattan k=5", "euclidean k=10")
