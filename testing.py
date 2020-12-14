@@ -27,6 +27,7 @@ from scipy.stats import ttest_rel
 from sklearn.model_selection import KFold
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.metrics import balanced_accuracy_score
+from sklearn.base import clone
 
 alpha = .05
 
@@ -231,8 +232,59 @@ for index, value in enumerate(y) :
 plt.show()
 
 
+clfs = {
+    'kNN_euclidean1' : KNeighborsClassifier(n_neighbors=1),
+    'kNN_euclidean5' : KNeighborsClassifier(n_neighbors=5),
+    'kNN_euclidean10' : KNeighborsClassifier(n_neighbors=10),
+    'kNN_manhattan1' : KNeighborsClassifier(n_neighbors=1, metric='manhattan'),
+    'kNN_manhattan5' : KNeighborsClassifier(n_neighbors=5, metric='manhattan'),
+    'kNN_manhattan10' : KNeighborsClassifier(n_neighbors=10, metric='manhattan'),
+}
+
+n_splits = 5
+n_repeats = 2
+length = len(ds_X.columns)
+rskf = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=n_repeats, random_state=1234)
+
+scores = np.zeros((len(clfs), length, n_splits*n_repeats))
+
+for n in range(1, len(ds_X.columns)):
+    new_x, new_y = return_n_ranks(ds_X, ds_y, n)
+    X = pd.DataFrame(data=new_x)
+    y = pd.DataFrame(data=new_y)
+    for fold_id, (train, test) in enumerate(rskf.split(X, y)):
+        for clf_id, clf_name in enumerate(clfs):
+            #print(X)
+            #print(y)
+            clf = clone(clfs[clf_name])
+            clf.fit(X.to_numpy()[train], y.to_numpy()[train].ravel())
+            y_pred = clf.predict(X.to_numpy()[test])
+            scores[clf_id, n, fold_id] = balanced_accuracy_score(y.to_numpy()[test], y_pred) 
+
+    
+
+np.save('resulttts', scores)
+
+
+
+'''
+x1 = len(ds_X.columns)
 metric_types = ['euclidean', 'manhattan']
+knn_number = [1,5,10]
+
+
+scores = np.recarray()
+
 acc_score = {}
+
+for number_of_att in range (1,x1):
+    for x_knn in knn_number:
+        for metric in metric_types:
+            new_x, new_y = return_n_ranks(ds_X, ds_y, number_of_att)
+            n1 = pd.DataFrame(data=new_x)
+            n2 = pd.DataFrame(data=new_y)
+            scores[number_of_att,x_knn,metric]=calculate_accuracy(n1, n2, metric, x_knn, number_of_att)
+
 
 for x_knn in [1,5,10]:
     neighb = x_knn
@@ -240,6 +292,8 @@ for x_knn in [1,5,10]:
         acc_score[str(metric) + str(x_knn)] = find_optimal_attrs(ds_X, ds_y, metric, neighb)
 
 print (acc_score)
+'''
+
 
 # Find best classifier
 max_accuracy = max(acc_score, key=acc_score.get)
